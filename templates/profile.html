@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Profile Settings — ATS Analyzer{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 class="section-title" style="margin-bottom:0;">Profile Settings</h1>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">← Dashboard</a>
+  </div>
+  {% if success %}<div class="alert alert-ok" style="display:flex;margin-bottom:1rem;">✓ {{ success }}</div>{% endif %}
+  {% if error %}<div class="alert alert-err" style="display:flex;margin-bottom:1rem;">⚠ {{ error }}</div>{% endif %}
+  <div style="display:grid;grid-template-columns:250px 1fr;gap:1.5rem;align-items:start;">
+    <div class="card">
+      <div class="card-body" style="text-align:center;">
+        <div style="width:72px;height:72px;border-radius:50%;background:{{ user.avatar_color }};display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;color:#fff;margin:0 auto 1rem;">{{ user.name[0].upper() }}</div>
+        <div style="font-size:.95rem;font-weight:700;color:var(--ink);margin-bottom:.2rem;">{{ user.name }}</div>
+        <div style="font-size:.75rem;color:var(--ink3);margin-bottom:1.25rem;word-break:break-all;">{{ user.email }}</div>
+        <div style="text-align:left;border-top:1px solid var(--border);padding-top:1rem;">
+          <div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.8rem;"><span style="color:var(--ink3)">Total Analyses</span><span style="font-weight:700">{{ stats.total }}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.8rem;"><span style="color:var(--ink3)">Best Score</span><span style="font-weight:700">{{ stats.best_score }}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:.4rem 0;font-size:.8rem;"><span style="color:var(--ink3)">Avg Score</span><span style="font-weight:700">{{ stats.avg_score }}</span></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:1.25rem;">
+        <div class="card-header"><span class="card-title">👤 Personal Information</span></div>
+        <div class="card-body">
+          <form method="POST">
+            <input type="hidden" name="action" value="update_profile"/>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+              <div class="form-group"><label class="form-label">Full Name</label><input type="text" name="name" class="form-input" value="{{ user.name }}" required/></div>
+              <div class="form-group"><label class="form-label">Email Address</label><input type="email" name="email" class="form-input" value="{{ user.email }}" required/></div>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Changes →</button>
+          </form>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">🔒 Change Password</span></div>
+        <div class="card-body">
+          <form method="POST">
+            <input type="hidden" name="action" value="change_password"/>
+            <div class="form-group"><label class="form-label">Current Password</label><input type="password" name="current_password" class="form-input" placeholder="Enter current password" required/></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+              <div class="form-group"><label class="form-label">New Password</label><input type="password" name="new_password" class="form-input" placeholder="Min 6 characters" required/></div>
+              <div class="form-group"><label class="form-label">Confirm Password</label><input type="password" name="confirm_password" class="form-input" placeholder="Repeat password" required/></div>
+            </div>
+            <button type="submit" class="btn btn-primary">Change Password →</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

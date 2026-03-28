@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}LinkedIn Analyzer — ATS Analyzer{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <h1 class="section-title">LinkedIn Profile Analyzer</h1>
+  <p class="text-muted text-sm" style="margin-bottom:1.5rem;">Paste your LinkedIn profile text to get a detailed score and improvement tips</p>
+
+  <div style="display:grid;grid-template-columns:1fr 380px;gap:1.5rem;align-items:start;">
+    <div>
+      <div class="card au d1">
+        <div class="card-header"><span class="card-title">💼 Paste LinkedIn Profile</span></div>
+        <div class="card-body">
+          <p style="font-size:.78rem;color:var(--ink3);margin-bottom:1rem;line-height:1.65;">
+            Go to your LinkedIn profile → select all text (Ctrl/Cmd+A) → copy → paste below.
+            Include your headline, about, experience, skills sections.
+          </p>
+          <textarea id="profileText" class="form-input" rows="16"
+            placeholder="Paste your full LinkedIn profile text here...&#10;&#10;John Doe&#10;Senior Data Scientist at Hargrove Tech&#10;&#10;About&#10;I am an accomplished data scientist with 10+ years of experience...&#10;&#10;Experience&#10;Senior Data Scientist&#10;Hargrove Tech..."></textarea>
+          <button onclick="analyzeLinkedIn()" class="btn btn-primary btn-full btn-lg" style="margin-top:1rem;">
+            Analyze LinkedIn Profile <span class="btn-arr">→</span>
+          </button>
+          <div class="alert alert-err" id="liErr" style="display:none;margin-top:1rem;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="liResults" style="display:none;">
+      <div class="card au d1">
+        <div class="card-header"><span class="card-title">📊 LinkedIn Score</span></div>
+        <div class="card-body" style="text-align:center;">
+          <div style="position:relative;width:130px;height:130px;margin:0 auto .75rem;">
+            <canvas id="liCanvas" width="130" height="130"></canvas>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+              <div id="liScoreNum" style="font-size:2.2rem;font-weight:800;color:var(--ink);line-height:1;letter-spacing:-.03em;">0</div>
+              <div style="font-size:.6rem;color:var(--ink4);letter-spacing:.08em;text-transform:uppercase;">/ 100</div>
+            </div>
+          </div>
+          <div class="badge" id="liGrade" style="margin-bottom:1rem;">—</div>
+          <div class="divider"></div>
+          <div id="liBreakdown"></div>
+        </div>
+      </div>
+      <div class="card au d2" style="margin-top:1rem;">
+        <div class="card-header"><span class="card-title">🎯 Improvements</span></div>
+        <div class="card-body" id="liImps"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+var _la=null;
+function analyzeLinkedIn(){
+  var text=document.getElementById('profileText').value.trim();
+  if(text.length<50){
+    document.getElementById('liErr').style.display='flex';
+    document.getElementById('liErr').textContent='Please paste at least 50 characters from your LinkedIn profile.';
+    return;
+  }
+  document.getElementById('liErr').style.display='none';
+  fetch('/api/linkedin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile_text:text})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.error){document.getElementById('liErr').style.display='flex';document.getElementById('liErr').textContent=d.error;return;}
+      renderLi(d);
+    })
+    .catch(function(){document.getElementById('liErr').style.display='flex';document.getElementById('liErr').textContent='Error. Is the server running?';});
+}
+function renderLi(d){
+  document.getElementById('liResults').style.display='block';
+  var s=d.overall_score;
+  animLiPie(s);
+  var g=s>=80?'Excellent':s>=65?'Good':s>=45?'Average':'Needs Work';
+  var gc=s>=80?'badge-green':s>=65?'badge-blue':s>=45?'badge-amber':'badge-red';
+  var gb=document.getElementById('liGrade');gb.textContent=g;gb.className='badge '+gc;
+
+  var bd=document.getElementById('liBreakdown');bd.innerHTML='';
+  Object.keys(d.score_breakdown).forEach(function(k){
+    var v=d.score_breakdown[k],m=d.max_breakdown[k]||1,p=Math.round((v/m)*100);
+    var fc=p>=75?'#16a34a':p>=50?'#4f6ef7':p>=30?'#d97706':'#dc2626';
+    bd.innerHTML+='<div style="display:flex;align-items:center;gap:.6rem;padding:.4rem 0;border-bottom:1px solid var(--border);">'+
+      '<span style="font-size:.73rem;color:var(--ink3);width:120px;flex-shrink:0">'+k+'</span>'+
+      '<div style="flex:1;height:4px;background:var(--bg2);border-radius:100px;overflow:hidden;">'+
+        '<div style="height:100%;background:'+fc+';border-radius:100px;width:0;transition:width 1s;" data-w="'+p+'"></div></div>'+
+      '<span style="font-size:.68rem;color:var(--ink4);width:28px;text-align:right">'+v+'</span></div>';
+  });
+  setTimeout(function(){
+    bd.querySelectorAll('[data-w]').forEach(function(el){el.style.width=el.getAttribute('data-w')+'%';});
+  },100);
+
+  var imps=d.improvements||[];
+  var il=document.getElementById('liImps');
+  if(!imps.length){il.innerHTML='<p style="font-size:.82rem;color:var(--green);">✓ Strong profile — no major issues found.</p>';return;}
+  il.innerHTML=imps.map(function(i){
+    var pc=i.priority==='HIGH'?'badge-red':i.priority==='MEDIUM'?'badge-amber':'badge-blue';
+    return '<div style="padding:.85rem 0;border-bottom:1px solid var(--border);">'+
+      '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;">'+
+        '<span class="badge '+pc+'">'+i.priority+'</span>'+
+        '<span style="font-size:.65rem;color:var(--ink4);font-weight:600;text-transform:uppercase;letter-spacing:.06em;">'+i.category+'</span></div>'+
+      '<div style="font-size:.82rem;font-weight:600;color:var(--ink);margin-bottom:.4rem;">'+escHtml(i.issue)+'</div>'+
+      '<div style="font-size:.78rem;color:var(--ink3);line-height:1.65;padding:.55rem .8rem;background:var(--surface2);border-radius:8px;border-left:2px solid var(--border2);">'+escHtml(i.fix)+'</div>'+
+    '</div>';
+  }).join('');
+  document.getElementById('liResults').scrollIntoView({behavior:'smooth'});
+}
+function animLiPie(target){
+  var cv=document.getElementById('liCanvas'),ctx=cv.getContext('2d');
+  var sz=cv.width,cx=sz/2,cy=sz/2,r=sz/2-10,cur=0;
+  var col=target>=80?'#16a34a':target>=65?'#4f6ef7':target>=45?'#d97706':'#dc2626';
+  if(_la)cancelAnimationFrame(_la);
+  function draw(v){
+    ctx.clearRect(0,0,sz,sz);
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle='rgba(0,0,0,.07)';ctx.lineWidth=9;ctx.stroke();
+    if(v>0){ctx.beginPath();ctx.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+(v/100)*Math.PI*2);ctx.strokeStyle=col;ctx.lineWidth=9;ctx.lineCap='round';ctx.stroke();}
+    document.getElementById('liScoreNum').textContent=Math.round(v);
+  }
+  function tick(){cur+=(target-cur)*.1;draw(cur);if(Math.abs(target-cur)>.3)_la=requestAnimationFrame(tick);else{draw(target);document.getElementById('liScoreNum').textContent=target;}}
+  tick();
+}
+</script>
+{% endblock %}

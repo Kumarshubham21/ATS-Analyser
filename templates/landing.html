@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}ATS Analyzer — Free Resume ATS Score Checker{% endblock %}
+{% block meta_desc %}Check your resume's ATS compatibility score for free. Find missing keywords, improve your resume, and land more interviews.{% endblock %}
+
+{% block head %}
+<style>
+.hero{background:linear-gradient(135deg,var(--surface) 0%,var(--primary-light) 100%);border-bottom:1px solid var(--border);padding:5rem 1.5rem 4rem;text-align:center;}
+.hero-inner{max-width:680px;margin:0 auto;}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--primary);background:var(--primary-light);border:1px solid #c7d2fe;padding:4px 14px;border-radius:100px;margin-bottom:1.5rem;}
+.hero-badge-dot{width:6px;height:6px;border-radius:50%;background:var(--primary);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(.8);}}
+.hero h1{font-size:clamp(2rem,5vw,3.5rem);font-weight:800;line-height:1.1;letter-spacing:-.03em;color:var(--ink);margin-bottom:1rem;}
+.hero h1 span{color:var(--primary);}
+.hero p{font-size:1rem;color:var(--ink3);max-width:520px;margin:0 auto 2rem;line-height:1.75;font-weight:400;}
+.hero-btns{display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;}
+.hero-note{font-size:.72rem;color:var(--ink4);margin-top:1.25rem;}
+
+/* features */
+.features{max-width:1280px;margin:0 auto;padding:4rem 1.5rem;}
+.features-title{text-align:center;font-size:1.75rem;font-weight:800;letter-spacing:-.02em;color:var(--ink);margin-bottom:.5rem;}
+.features-sub{text-align:center;font-size:.9rem;color:var(--ink3);margin-bottom:3rem;}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;}
+.feat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s;}
+.feat-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);}
+.feat-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;margin-bottom:1rem;}
+.feat-icon-blue{background:var(--primary-light);}
+.feat-icon-green{background:var(--green-bg);}
+.feat-icon-amber{background:var(--amber-bg);}
+.feat-icon-red{background:var(--red-bg);}
+.feat-title{font-size:.88rem;font-weight:700;color:var(--ink);margin-bottom:.4rem;}
+.feat-desc{font-size:.78rem;color:var(--ink3);line-height:1.65;}
+
+/* stats */
+.stats{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.stats-inner{max-width:1280px;margin:0 auto;padding:2.5rem 1.5rem;display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;text-align:center;}
+@media(max-width:600px){.stats-inner{grid-template-columns:1fr 1fr;}}
+.stat-num{font-size:2rem;font-weight:800;color:var(--primary);letter-spacing:-.03em;line-height:1;}
+.stat-label{font-size:.75rem;color:var(--ink3);margin-top:.25rem;}
+
+/* how it works */
+.how{max-width:1280px;margin:0 auto;padding:4rem 1.5rem;}
+.how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:2.5rem;}
+@media(max-width:700px){.how-grid{grid-template-columns:1fr;}}
+.step{text-align:center;padding:1.5rem;}
+.step-num{width:40px;height:40px;border-radius:50%;background:var(--primary);color:#fff;font-size:.88rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;}
+.step-title{font-size:.9rem;font-weight:700;color:var(--ink);margin-bottom:.4rem;}
+.step-desc{font-size:.78rem;color:var(--ink3);line-height:1.65;}
+
+/* cta */
+.cta{background:var(--primary);padding:4rem 1.5rem;text-align:center;}
+.cta h2{font-size:2rem;font-weight:800;color:#fff;letter-spacing:-.02em;margin-bottom:.75rem;}
+.cta p{font-size:.9rem;color:rgba(255,255,255,.75);margin-bottom:2rem;}
+.btn-white{background:#fff;color:var(--primary);padding:.9rem 2rem;font-size:.9rem;border-radius:10px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;transition:all .2s;}
+.btn-white:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.2);}
+
+/* footer */
+.footer{background:var(--surface);border-top:1px solid var(--border);padding:1.5rem;}
+.footer-inner{max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;}
+.footer p{font-size:.72rem;color:var(--ink4);}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-inner au d1">
+    <div class="hero-badge"><span class="hero-badge-dot"></span>Free Resume Checker</div>
+    <h1>Get Your Resume Past<br>the <span>ATS Filter</span></h1>
+    <p>Upload your resume and get an instant ATS compatibility score, missing keyword report, and actionable improvements to land more interviews.</p>
+    <div class="hero-btns">
+      {% if user %}
+        <a href="{{ url_for('analyze_page') }}" class="btn btn-primary btn-lg">Analyze My Resume <span class="btn-arr">→</span></a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-lg">Go to Dashboard</a>
+      {% else %}
+        <a href="{{ url_for('signup') }}" class="btn btn-primary btn-lg">Get Started Free <span class="btn-arr">→</span></a>
+        <a href="{{ url_for('login') }}" class="btn btn-ghost btn-lg">Login</a>
+      {% endif %}
+    </div>
+    <p class="hero-note">No credit card required · Your resume stays private · Results in seconds</p>
+  </div>
+</section>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stats-inner au d2">
+    <div><div class="stat-num">8</div><div class="stat-label">Scoring criteria</div></div>
+    <div><div class="stat-num">200+</div><div class="stat-label">Keywords analyzed</div></div>
+    <div><div class="stat-num">84%</div><div class="stat-label">Avg score improvement</div></div>
+    <div><div class="stat-num">100%</div><div class="stat-label">Private & local</div></div>
+  </div>
+</div>
+
+<!-- Features -->
+<section class="features">
+  <h2 class="features-title au d1">Everything You Need to Beat the ATS</h2>
+  <p class="features-sub au d2">Professional resume analysis powered by the same methodology as Jobscan and Resume Worded</p>
+  <div class="features-grid">
+    <div class="feat-card au d1">
+      <div class="feat-icon feat-icon-blue">📊</div>
+      <div class="feat-title">ATS Score (0–100)</div>
+      <div class="feat-desc">Get a precise ATS compatibility score across 8 weighted criteria matching how real ATS systems rank resumes.</div>
+    </div>
+    <div class="feat-card au d2">
+      <div class="feat-icon feat-icon-green">🎯</div>
+      <div class="feat-title">Job Description Match</div>
+      <div class="feat-desc">Paste any job description and see exactly which keywords you're missing and how well your resume matches.</div>
+    </div>
+    <div class="feat-card au d3">
+      <div class="feat-icon feat-icon-amber">📋</div>
+      <div class="feat-title">Resume History</div>
+      <div class="feat-desc">Every analysis is saved. Track your improvement over time and see how your score changes with each version.</div>
+    </div>
+    <div class="feat-card au d4">
+      <div class="feat-icon feat-icon-red">⚖️</div>
+      <div class="feat-title">Resume Comparison</div>
+      <div class="feat-desc">Compare two versions of your resume side by side to see which one performs better across all criteria.</div>
+    </div>
+    <div class="feat-card au d2">
+      <div class="feat-icon feat-icon-blue">💼</div>
+      <div class="feat-title">LinkedIn Analyzer</div>
+      <div class="feat-desc">Analyze your LinkedIn profile with the same depth. Find gaps and improve your visibility to recruiters.</div>
+    </div>
+    <div class="feat-card au d3">
+      <div class="feat-icon feat-icon-green">🔍</div>
+      <div class="feat-title">Scanned Resume OCR</div>
+      <div class="feat-desc">Upload scanned PDFs, photos of resumes, or image files. Our OCR engine extracts text automatically.</div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="how">
+  <h2 class="features-title">How It Works</h2>
+  <p class="features-sub">Three steps to a better resume</p>
+  <div class="how-grid">
+    <div class="step au d1">
+      <div class="step-num">1</div>
+      <div class="step-title">Upload Your Resume</div>
+      <div class="step-desc">Upload PDF, DOCX, or image. Or paste the text directly. We handle all formats including scanned documents.</div>
+    </div>
+    <div class="step au d2">
+      <div class="step-num">2</div>
+      <div class="step-title">Get Your Score</div>
+      <div class="step-desc">Our engine scores your resume across 8 criteria: keywords, structure, writing quality, quantified impact, and more.</div>
+    </div>
+    <div class="step au d3">
+      <div class="step-num">3</div>
+      <div class="step-title">Fix & Improve</div>
+      <div class="step-desc">Follow the prioritized improvement recommendations, re-upload, and watch your score climb.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <h2>Ready to Land More Interviews?</h2>
+  <p>Join thousands of job seekers who improved their resume with ATS Analyzer</p>
+  {% if user %}
+    <a href="{{ url_for('analyze_page') }}" class="btn-white">Analyze My Resume →</a>
+  {% else %}
+    <a href="{{ url_for('signup') }}" class="btn-white">Create Free Account →</a>
+  {% endif %}
+</section>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <p>© 2025 <strong>ATS Analyzer</strong> — Free Resume ATS Score Checker</p>
+    <p>Your resume data is processed locally and never stored on external servers.</p>
+  </div>
+</footer>
+{% endblock %}

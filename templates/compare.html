@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Compare Resumes — ATS Analyzer{% endblock %}
+{% block head %}
+<style>
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem;}
+@media(max-width:700px){.compare-grid{grid-template-columns:1fr;}}
+.compare-col{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;}
+.compare-label{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink4);margin-bottom:1rem;}
+.score-big{font-size:3.5rem;font-weight:800;letter-spacing:-.04em;line-height:1;margin:.75rem 0 .3rem;}
+.score-big-a{color:var(--primary);}
+.score-big-b{color:var(--green);}
+.winner-badge{display:inline-block;font-size:.65rem;font-weight:700;padding:3px 10px;border-radius:100px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);}
+.bd-row-c{display:flex;align-items:center;gap:.75rem;padding:.5rem 0;border-bottom:1px solid var(--border);}
+.bd-row-c:last-child{border-bottom:none;}
+.bd-name-c{font-size:.75rem;color:var(--ink3);width:130px;flex-shrink:0;}
+.bd-bar-c{flex:1;height:5px;background:var(--bg2);border-radius:100px;overflow:hidden;}
+.bd-fill-c{height:100%;border-radius:100px;width:0;transition:width 1s cubic-bezier(.4,0,.2,1);}
+.bfc-a{background:var(--primary);}
+.bfc-b{background:var(--green);}
+.bd-val-c{font-size:.7rem;color:var(--ink4);width:30px;text-align:right;}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <h1 class="section-title">Compare Resumes</h1>
+  <p class="text-muted text-sm" style="margin-bottom:1.5rem;">Select two analyses to compare them side by side</p>
+
+  {% if analyses|length < 2 %}
+  <div class="card">
+    <div class="card-body" style="text-align:center;padding:3rem;">
+      <div style="font-size:3rem;margin-bottom:1rem;">⚖️</div>
+      <div style="font-size:.9rem;font-weight:600;color:var(--ink2);margin-bottom:.5rem;">You need at least 2 analyses to compare</div>
+      <a href="{{ url_for('analyze_page') }}" class="btn btn-primary" style="margin-top:1rem;">Analyze a Resume →</a>
+    </div>
+  </div>
+  {% else %}
+  <div class="card au d1">
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:1rem;align-items:end;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Resume A</label>
+          <select id="selA" class="form-input">
+            {% for a in analyses %}<option value="{{ a.id }}">{{ a.resume_name }} ({{ a.ats_score }}) — {{ a.created_at[:10] }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Resume B</label>
+          <select id="selB" class="form-input">
+            {% for a in analyses %}<option value="{{ a.id }}" {% if loop.index==2 %}selected{% elif loop.index==1 and analyses|length==1 %}selected{% endif %}>{{ a.resume_name }} ({{ a.ats_score }}) — {{ a.created_at[:10] }}</option>{% endfor %}
+          </select>
+        </div>
+        <button onclick="doCompare()" class="btn btn-primary btn-lg">Compare →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="compareResult" style="display:none;" class="au d2">
+    <div class="compare-grid">
+      <div class="compare-col">
+        <div class="compare-label">Resume A</div>
+        <div id="nameA" style="font-size:.88rem;font-weight:700;color:var(--ink);margin-bottom:.25rem;"></div>
+        <div class="score-big score-big-a" id="scoreA">—</div>
+        <div id="gradeA"></div>
+        <div class="divider"></div>
+        <div id="bdA"></div>
+      </div>
+      <div class="compare-col">
+        <div class="compare-label">Resume B</div>
+        <div id="nameB" style="font-size:.88rem;font-weight:700;color:var(--ink);margin-bottom:.25rem;"></div>
+        <div class="score-big score-big-b" id="scoreB">—</div>
+        <div id="gradeB"></div>
+        <div class="divider"></div>
+        <div id="bdB"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:1.5rem;">
+      <div class="card-header"><span class="card-title">📊 Side-by-Side Breakdown</span></div>
+      <div class="card-body" id="sideBySide"></div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function escHtml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+function doCompare(){
+  var id1=document.getElementById('selA').value;
+  var id2=document.getElementById('selB').value;
+
+  // Show loading state on button
+  var btn=document.querySelector('.btn-primary.btn-lg');
+  var origText=btn.textContent;
+  btn.textContent='Comparing...';
+  btn.disabled=true;
+
+  if(id1===id2){
+    alert('Please select two different resumes to compare.');
+    btn.textContent=origText;btn.disabled=false;
+    return;
+  }
+
+  fetch('/api/compare',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id1:parseInt(id1),id2:parseInt(id2)})
+  })
+  .then(function(r){
+    if(!r.ok) throw new Error('Server error: '+r.status);
+    return r.json();
+  })
+  .then(function(d){
+    btn.textContent=origText;btn.disabled=false;
+    if(d.error){alert('Error: '+d.error);return;}
+    renderCompare(d.a1,d.a2);
+  })
+  .catch(function(err){
+    btn.textContent=origText;btn.disabled=false;
+    alert('Compare failed: '+err.message+'. Make sure you are logged in.');
+  });
+}
+function normalizeBreakdown(bd, mx){
+  // Safe parse — handle string, object, null, undefined
+  function safeParse(v){ if(!v) return {}; if(typeof v==='string'){try{return JSON.parse(v);}catch(e){return {};}} return (typeof v==='object')?v:{}; }
+  bd = safeParse(bd);
+  mx = safeParse(mx);
+
+  // Default max weights — used when max_breakdown is missing (old analyses)
+  var defaultMax = {
+    'Contact Details':15, 'Section Structure':15, 'Technical Skills':20,
+    'Language & Tone':15, 'Measurable Achievements':15,
+    'File Format & Readability':10, 'Interpersonal Skills':15,
+    'Resume Length':10,
+    // old key names fallback
+    'contact':8,'sections':12,'technical':22,'keywords':22,'writing':15,
+    'quantification':18,'quant':18,'format':8,'soft_skills':10,'soft':10,'length':7
+  };
+
+  // Map old internal keys to friendly display names
+  var keyMap = {
+    'contact':'Contact Details','sections':'Section Structure',
+    'technical':'Technical Skills','keywords':'Technical Skills',
+    'writing':'Language & Tone','quantification':'Measurable Achievements',
+    'quant':'Measurable Achievements','format':'File Format & Readability',
+    'soft_skills':'Interpersonal Skills','soft':'Interpersonal Skills',
+    'length':'Resume Length'
+  };
+
+  var newBd = {}, newMx = {};
+  Object.keys(bd).forEach(function(k){
+    var displayKey = keyMap[k] || k;
+    var val = parseFloat(bd[k]) || 0;
+    // Get max from mx object, or from defaultMax, or fallback to 1
+    var maxVal = parseFloat(mx[k]||mx[displayKey]||defaultMax[k]||defaultMax[displayKey]||1);
+    newBd[displayKey] = val;
+    newMx[displayKey] = maxVal;
+  });
+  return {bd:newBd, mx:newMx};
+}
+
+function renderCompare(a1, a2){
+  document.getElementById('nameA').textContent = a1.resume_name || 'Resume A';
+  document.getElementById('nameB').textContent = a2.resume_name || 'Resume B';
+  document.getElementById('scoreA').textContent = a1.ats_score || '—';
+  document.getElementById('scoreB').textContent = a2.ats_score || '—';
+
+  function gradeHtml(s){
+    var g=s>=80?'Excellent':s>=65?'Good':s>=45?'Average':'Needs Work';
+    var c=s>=80?'badge-green':s>=65?'badge-blue':s>=45?'badge-amber':'badge-red';
+    return '<span class="badge '+c+'">'+g+'</span>';
+  }
+  document.getElementById('gradeA').innerHTML = gradeHtml(a1.ats_score);
+  document.getElementById('gradeB').innerHTML = gradeHtml(a2.ats_score);
+
+  // Normalize breakdowns to handle old + new key names
+  var normA = normalizeBreakdown(a1.score_breakdown, a1.max_breakdown);
+  var normB = normalizeBreakdown(a2.score_breakdown, a2.max_breakdown);
+
+  function bdHtml(bd, mx, cls){
+    var html = '';
+    if(!bd || Object.keys(bd).length === 0){
+      return '<p style="font-size:.75rem;color:var(--ink4);padding:.5rem 0">No breakdown data</p>';
+    }
+    Object.keys(bd).forEach(function(k){
+      var v = bd[k] || 0;
+      var m = (mx && mx[k]) ? mx[k] : 1;
+      var p = Math.round((v/m)*100);
+      html += '<div class="bd-row-c">'+
+        '<div class="bd-name-c">'+escHtml(k)+'</div>'+
+        '<div class="bd-bar-c"><div class="bd-fill-c '+cls+'" data-w="'+p+'"></div></div>'+
+        '<div class="bd-val-c">'+v+'</div></div>';
+    });
+    return html;
+  }
+
+  document.getElementById('bdA').innerHTML = bdHtml(normA.bd, normA.mx, 'bfc-a');
+  document.getElementById('bdB').innerHTML = bdHtml(normB.bd, normB.mx, 'bfc-b');
+
+  // Side by side table — use A keys as reference
+  var allKeys = Object.keys(normA.bd);
+  var sbs = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">';
+  sbs += '<thead><tr>'+
+    '<th style="padding:.6rem .75rem;text-align:left;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink4);border-bottom:1px solid var(--border)">Criterion</th>'+
+    '<th style="padding:.6rem .75rem;text-align:center;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--primary);border-bottom:1px solid var(--border)">Resume A</th>'+
+    '<th style="padding:.6rem .75rem;text-align:center;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);border-bottom:1px solid var(--border)">Resume B</th>'+
+    '<th style="padding:.6rem .75rem;text-align:center;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink4);border-bottom:1px solid var(--border)">Winner</th>'+
+  '</tr></thead><tbody>';
+
+  allKeys.forEach(function(k){
+    var v1 = normA.bd[k] || 0;
+    var v2 = normB.bd[k] || 0;
+    var w  = v1>v2 ? 'A' : v2>v1 ? 'B' : 'Tie';
+    var wc = w==='A' ? 'color:var(--primary)' : w==='B' ? 'color:var(--green)' : 'color:var(--ink4)';
+    sbs += '<tr>'+
+      '<td style="padding:.65rem .75rem;font-size:.78rem;border-bottom:1px solid var(--border);color:var(--ink2);">'+escHtml(k)+'</td>'+
+      '<td style="padding:.65rem .75rem;text-align:center;font-size:.82rem;font-weight:700;border-bottom:1px solid var(--border);color:var(--primary)">'+v1+'</td>'+
+      '<td style="padding:.65rem .75rem;text-align:center;font-size:.82rem;font-weight:700;border-bottom:1px solid var(--border);color:var(--green)">'+v2+'</td>'+
+      '<td style="padding:.65rem .75rem;text-align:center;font-size:.75rem;font-weight:700;border-bottom:1px solid var(--border);'+wc+'">'+w+'</td>'+
+    '</tr>';
+  });
+
+  sbs += '</tbody></table></div>';
+  document.getElementById('sideBySide').innerHTML = sbs;
+  document.getElementById('compareResult').style.display = 'block';
+  document.getElementById('compareResult').scrollIntoView({behavior:'smooth'});
+  setTimeout(function(){
+    document.querySelectorAll('.bd-fill-c').forEach(function(el){
+      el.style.width = el.getAttribute('data-w') + '%';
+    });
+  }, 100);
+}
+</script>
+{% endblock %}

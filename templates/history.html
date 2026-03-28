@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Resume History — ATS Analyzer{% endblock %}
+{% block head %}
+<style>
+.history-table{width:100%;border-collapse:collapse;}
+.history-table th{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink4);padding:.65rem 1rem;text-align:left;border-bottom:1px solid var(--border);}
+.history-table td{padding:.85rem 1rem;border-bottom:1px solid var(--border);font-size:.82rem;color:var(--ink2);vertical-align:middle;}
+.history-table tr:hover td{background:var(--surface2);}
+.history-table tr:last-child td{border-bottom:none;}
+.score-circle{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:800;}
+.sc-ex{background:var(--green-bg);color:var(--green);}
+.sc-go{background:var(--primary-light);color:var(--primary);}
+.sc-av{background:var(--amber-bg);color:var(--amber);}
+.sc-po{background:var(--red-bg);color:var(--red);}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 class="section-title" style="margin-bottom:0;">Resume History</h1>
+    <a href="{{ url_for('analyze_page') }}" class="btn btn-primary">+ New Analysis</a>
+  </div>
+
+  <div class="card au d1">
+    {% if analyses %}
+    <div style="overflow-x:auto;">
+    <table class="history-table">
+      <thead>
+        <tr>
+          <th>Score</th><th>Resume</th><th>Date</th><th>Words</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in analyses %}
+        {% set sc=a.ats_score %}
+        {% set cls = 'ex' if sc>=80 else ('go' if sc>=65 else ('av' if sc>=45 else 'po')) %}
+        <tr>
+          <td><div class="score-circle sc-{{ cls }}">{{ sc }}</div></td>
+          <td>
+            <div style="font-weight:600;color:var(--ink);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ a.resume_name }}</div>
+          </td>
+          <td>{{ a.created_at[:16].replace('T',' ') }}</td>
+          <td>{{ a.word_count }}</td>
+          <td>
+            <div style="display:flex;gap:.5rem;">
+              <a href="{{ url_for('view_analysis', aid=a.id) }}" class="btn btn-ghost" style="padding:4px 12px;font-size:.72rem;">View</a>
+              <button onclick="deleteAnalysis({{ a.id }}, this)" class="btn btn-danger" style="padding:4px 12px;font-size:.72rem;">Delete</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="card-body" style="text-align:center;padding:3rem;">
+      <div style="font-size:3rem;margin-bottom:1rem;">📋</div>
+      <div style="font-size:.9rem;font-weight:600;color:var(--ink2);margin-bottom:.5rem;">No analyses yet</div>
+      <div style="font-size:.78rem;color:var(--ink4);margin-bottom:1.5rem;">Upload your first resume to get started</div>
+      <a href="{{ url_for('analyze_page') }}" class="btn btn-primary">Analyze Resume →</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function deleteAnalysis(id, btn){
+  if(!confirm('Delete this analysis?')) return;
+  fetch('/api/delete/'+id,{method:'DELETE'})
+    .then(function(r){return r.json();})
+    .then(function(){btn.closest('tr').remove();});
+}
+</script>
+{% endblock %}

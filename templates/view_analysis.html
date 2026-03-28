@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Analysis #{{ analysis.id }} — ATS Analyzer{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+    <a href="{{ url_for('history') }}" class="btn btn-ghost" style="padding:5px 12px;font-size:.75rem;">← Back</a>
+    <h1 class="section-title" style="margin-bottom:0;">{{ analysis.resume_name }}</h1>
+    <span style="font-size:.72rem;color:var(--ink4);">{{ analysis.created_at[:16].replace('T',' ') }}</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:280px 1fr;gap:1.5rem;align-items:start;">
+    <!-- Score panel -->
+    <div class="card au d1">
+      <div class="card-body" style="text-align:center;">
+        {% set s = analysis.ats_score %}
+        {% set color = '#16a34a' if s>=80 else ('#4f6ef7' if s>=65 else ('#d97706' if s>=45 else '#dc2626')) %}
+        <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink4);margin-bottom:.75rem;">ATS Score</div>
+        <div style="font-size:4rem;font-weight:800;color:{{ color }};letter-spacing:-.04em;line-height:1;margin-bottom:.5rem;">{{ s }}</div>
+        <div style="font-size:.78rem;color:var(--ink4);margin-bottom:1.25rem;">out of 100</div>
+        {% if s>=80 %}<span class="badge badge-green">Excellent</span>
+        {% elif s>=65 %}<span class="badge badge-blue">Good</span>
+        {% elif s>=45 %}<span class="badge badge-amber">Average</span>
+        {% else %}<span class="badge badge-red">Needs Work</span>{% endif %}
+
+        <div class="divider"></div>
+        {% for k,v in analysis.score_breakdown.items() %}
+        {% set mx = analysis.max_breakdown.get(k,1) %}
+        {% set p = ((v/mx)*100)|round|int %}
+        <div style="display:flex;align-items:center;gap:.6rem;padding:.4rem 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:.72rem;color:var(--ink3);text-align:left;width:110px;flex-shrink:0;">{{ k }}</span>
+          <div style="flex:1;height:4px;background:var(--bg2);border-radius:100px;overflow:hidden;">
+            <div style="height:100%;background:{% if p>=75 %}var(--green){% elif p>=50 %}var(--primary){% elif p>=30 %}var(--amber){% else %}var(--red){% endif %};width:{{ p }}%;border-radius:100px;"></div>
+          </div>
+          <span style="font-size:.68rem;color:var(--ink4);width:24px;text-align:right;">{{ v }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div>
+      <!-- Keywords -->
+      <div class="card au d2" style="margin-bottom:1.25rem;">
+        <div class="card-header"><span class="card-title">💻 Keywords</span></div>
+        <div class="card-body">
+          <div style="font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:.5rem;">Found ({{ analysis.found_keywords|length }})</div>
+          <div class="chips-row" style="margin-bottom:1rem;">
+            {% for k in analysis.found_keywords[:18] %}<span class="chip chip-g">{{ k }}</span>{% endfor %}
+          </div>
+          <div style="font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--amber);margin-bottom:.5rem;">Consider Adding</div>
+          <div class="chips-row">
+            {% for k in analysis.missing_keywords[:12] %}<span class="chip chip-a">{{ k }}</span>{% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Improvements -->
+      <div class="card au d3">
+        <div class="card-header"><span class="card-title">🎯 Improvements</span></div>
+        <div class="card-body">
+          {% if analysis.improvements %}
+            {% for i in analysis.improvements %}
+            <div style="padding:.85rem 0;border-bottom:1px solid var(--border);">
+              <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;">
+                <span class="badge {% if i.priority=='HIGH' %}badge-red{% elif i.priority=='MEDIUM' %}badge-amber{% else %}badge-blue{% endif %}">{{ i.priority }}</span>
+                <span style="font-size:.65rem;color:var(--ink4);font-weight:600;text-transform:uppercase;letter-spacing:.06em;">{{ i.category }}</span>
+              </div>
+              <div style="font-size:.82rem;font-weight:600;color:var(--ink);margin-bottom:.4rem;">{{ i.issue }}</div>
+              <div style="font-size:.78rem;color:var(--ink3);line-height:1.65;padding:.55rem .8rem;background:var(--surface2);border-radius:8px;border-left:2px solid var(--border2);">{{ i.fix }}</div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p style="font-size:.82rem;color:var(--green);">✓ No major issues found.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

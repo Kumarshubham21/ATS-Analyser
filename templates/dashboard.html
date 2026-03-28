@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — ATS Analyzer{% endblock %}
+{% block head %}
+<style>
+.dash-hero{background:linear-gradient(135deg,var(--primary) 0%,#7c5ef7 100%);padding:2.5rem 1.5rem;color:#fff;}
+.dash-hero-inner{max-width:1280px;margin:0 auto;}
+.dash-greeting{font-size:1.5rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.3rem;}
+.dash-sub{font-size:.85rem;opacity:.8;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;margin-bottom:2rem;}
+@media(max-width:700px){.stats-grid{grid-template-columns:1fr 1fr;}}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;box-shadow:var(--shadow);}
+.stat-card-num{font-size:2rem;font-weight:800;letter-spacing:-.03em;color:var(--ink);line-height:1;margin-bottom:.2rem;}
+.stat-card-label{font-size:.72rem;color:var(--ink3);font-weight:500;text-transform:uppercase;letter-spacing:.05em;}
+.stat-card-icon{font-size:1.3rem;margin-bottom:.6rem;}
+.dash-grid{display:grid;grid-template-columns:1fr 320px;gap:1.5rem;}
+@media(max-width:900px){.dash-grid{grid-template-columns:1fr;}}
+.history-item{display:flex;align-items:center;gap:1rem;padding:.85rem 0;border-bottom:1px solid var(--border);transition:padding-left .15s;}
+.history-item:hover{padding-left:4px;}
+.history-item:last-child{border-bottom:none;}
+.hi-score{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.88rem;font-weight:800;flex-shrink:0;}
+.hi-score-ex{background:var(--green-bg);color:var(--green);}
+.hi-score-go{background:var(--primary-light);color:var(--primary);}
+.hi-score-av{background:var(--amber-bg);color:var(--amber);}
+.hi-score-po{background:var(--red-bg);color:var(--red);}
+.hi-name{font-size:.82rem;font-weight:600;color:var(--ink);margin-bottom:.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;}
+.hi-date{font-size:.7rem;color:var(--ink4);}
+.hi-actions{margin-left:auto;display:flex;gap:.5rem;flex-shrink:0;}
+.quick-action{display:flex;align-items:center;gap:.75rem;padding:.9rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--ink);font-size:.82rem;font-weight:600;transition:all .15s;margin-bottom:.65rem;}
+.quick-action:hover{background:var(--primary-light);border-color:var(--primary);color:var(--primary);}
+.qa-icon{font-size:1.1rem;width:36px;height:36px;background:var(--surface);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dash-hero">
+  <div class="dash-hero-inner">
+    <div class="dash-greeting">Good to see you, {{ user.name.split()[0] }}! 👋</div>
+    <div class="dash-sub">Here's your resume analysis overview</div>
+  </div>
+</div>
+
+<div class="page-wrap">
+
+  <!-- Stats -->
+  <div class="stats-grid au d1">
+    <div class="stat-card">
+      <div class="stat-card-icon">📊</div>
+      <div class="stat-card-num">{{ stats.total }}</div>
+      <div class="stat-card-label">Total Analyses</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon">⭐</div>
+      <div class="stat-card-num">{{ stats.best_score }}</div>
+      <div class="stat-card-label">Best Score</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon">📈</div>
+      <div class="stat-card-num">{{ stats.avg_score }}</div>
+      <div class="stat-card-label">Average Score</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon">🕐</div>
+      <div class="stat-card-num">{{ stats.latest_score or '—' }}</div>
+      <div class="stat-card-label">Latest Score</div>
+    </div>
+  </div>
+
+  <div class="dash-grid">
+    <!-- Recent history -->
+    <div class="card au d2">
+      <div class="card-header">
+        <span class="card-title">📋 Recent Analyses</span>
+        <a href="{{ url_for('history') }}" class="btn btn-ghost" style="padding:4px 10px;font-size:.72rem;">View all</a>
+      </div>
+      <div class="card-body">
+        {% if analyses %}
+          {% for a in analyses %}
+          {% set sc = a.ats_score %}
+          {% set cls = 'ex' if sc>=80 else ('go' if sc>=65 else ('av' if sc>=45 else 'po')) %}
+          <div class="history-item">
+            <div class="hi-score hi-score-{{ cls }}">{{ sc }}</div>
+            <div>
+              <div class="hi-name" title="{{ a.resume_name }}">{{ a.resume_name }}</div>
+              <div class="hi-date">{{ a.created_at[:10] }}</div>
+            </div>
+            <div class="hi-actions">
+              <a href="{{ url_for('view_analysis', aid=a.id) }}" class="btn btn-ghost" style="padding:4px 10px;font-size:.7rem;">View</a>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="text-align:center;padding:2rem 0;color:var(--ink4);">
+            <div style="font-size:2rem;margin-bottom:.75rem;">📄</div>
+            <div style="font-size:.85rem;font-weight:600;color:var(--ink2);margin-bottom:.4rem;">No analyses yet</div>
+            <div style="font-size:.78rem;">Upload your first resume to get started</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="au d3">
+      <div class="section-title">Quick Actions</div>
+      <a class="quick-action" href="{{ url_for('analyze_page') }}">
+        <div class="qa-icon">⚡</div>
+        <div>
+          <div>Analyze Resume</div>
+          <div style="font-size:.7rem;color:var(--ink4);font-weight:400;">Upload a new resume</div>
+        </div>
+      </a>
+      <a class="quick-action" href="{{ url_for('compare') }}">
+        <div class="qa-icon">⚖️</div>
+        <div>
+          <div>Compare Resumes</div>
+          <div style="font-size:.7rem;color:var(--ink4);font-weight:400;">Side-by-side comparison</div>
+        </div>
+      </a>
+      <a class="quick-action" href="{{ url_for('linkedin_page') }}">
+        <div class="qa-icon">💼</div>
+        <div>
+          <div>LinkedIn Analyzer</div>
+          <div style="font-size:.7rem;color:var(--ink4);font-weight:400;">Score your LinkedIn profile</div>
+        </div>
+      </a>
+      <a class="quick-action" href="{{ url_for('history') }}">
+        <div class="qa-icon">🕐</div>
+        <div>
+          <div>View History</div>
+          <div style="font-size:.7rem;color:var(--ink4);font-weight:400;">All past analyses</div>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
