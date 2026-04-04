@@ -36,7 +36,6 @@ ats_engine = ATSAnalyzer()
 li_engine  = LinkedInAnalyzer()
 IMAGE_EXT  = {'.jpg','.jpeg','.png','.webp','.bmp','.tiff','.tif'}
 
-with app.app_context():
     
 
 def login_required(f):
