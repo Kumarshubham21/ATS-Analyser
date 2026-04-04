@@ -318,5 +318,4 @@ def profile():
     return render_template('profile.html', user=user, stats=stats, success=success_msg, error=error_msg)
 
 if __name__=='__main__':
-    init_db()
     app.run(host='0.0.0.0',port=5002,debug=True)
