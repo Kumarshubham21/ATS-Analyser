@@ -37,7 +37,7 @@ li_engine  = LinkedInAnalyzer()
 IMAGE_EXT  = {'.jpg','.jpeg','.png','.webp','.bmp','.tiff','.tif'}
 
 with app.app_context():
-    init_db()
+    
 
 def login_required(f):
     @wraps(f)
