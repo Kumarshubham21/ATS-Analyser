@@ -15,32 +15,6 @@ from datetime import datetime
 # DATABASE_URL=postgresql://postgres:<password>@<host>:5432/postgres
 
 def get_db():
-    db_url = os.environ.get("DATABASE_URL")
-
-    if not db_url:
-        raise Exception("DATABASE_URL not set")
-
-    conn = psycopg2.connect(db_url)
-    return conn
-
-
-def init_db():
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        name TEXT,
-        email TEXT
-    )
-    """)
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-def get_db():
     conn = psycopg2.connect(
         os.environ.get('DATABASE_URL'),
         cursor_factory=psycopg2.extras.RealDictCursor   # makes rows behave like dicts
