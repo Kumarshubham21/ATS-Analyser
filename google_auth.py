@@ -31,6 +31,8 @@ def get_google_creds():
 def google_login():
     """Redirect user to Google login page."""
     client_id, _ = get_google_creds()
+    print("CLIENT ID:", client_id)
+    print("SECRET:", client_secret)
 
     if not client_id:
         return redirect(url_for('login') + '?error=Google+login+not+configured')
